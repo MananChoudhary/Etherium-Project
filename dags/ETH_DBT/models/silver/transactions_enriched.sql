@@ -1,4 +1,10 @@
 
+{{ config(
+    materialized='incremental',
+    unique_key='hash',
+    incremental_strategy='merge'
+) }}
+
 /*
 ===============================================================================
 Model: transactions_enriched
@@ -43,3 +49,6 @@ left join (
 
 on t.hash = tt.transaction_hash
 
+{% if is_incremental() %}
+where t.date > (select max(date) from {{ this }})
+{% endif %}

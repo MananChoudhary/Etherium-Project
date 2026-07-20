@@ -31,8 +31,8 @@ clean-targets:         # directories to be removed by `dbt clean`
 # files using the `{{ config(...) }}` macro.
 models:
   ETH_DBT:
-    # This forces everything to be a physical table instead of a view
-    +materialized: table 
+    +materialized: incremental
+    +incremental_strategy: merge
 
     # Maps your subfolders to clean custom schemas in Snowflake
     silver:

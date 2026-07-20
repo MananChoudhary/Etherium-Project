@@ -1,3 +1,9 @@
+{{ config(
+    materialized='incremental',
+    unique_key=['date', 'transaction_category'],
+    incremental_strategy='merge'
+) }}
+
 /*
 ===============================================================================
 Model: daily_transaction_summary
@@ -10,8 +16,6 @@ Dependencies:
 ===============================================================================
 */
 
-
-
 select
 date,
 transaction_category,
@@ -20,7 +24,10 @@ sum(value)/1e18 as sum_eth_value
 
 from {{ ref('transactions_enriched') }}
 
+{% if is_incremental() %}
+where date > (select max(date) from {{ this }})
+{% endif %}
+
 group by 
 date,
 transaction_category
-

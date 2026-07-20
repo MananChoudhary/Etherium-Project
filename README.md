@@ -205,30 +205,10 @@ docker compose run airflow-cli airflow dags trigger ethereum_medallion_pipeline
 
 ---
 
-## 6. Things you need to fix in this repo (found while reviewing)
 
-| File | Issue | Fix |
-|---|---|---|
-| `dags/ethereum_data_pipeline.py` (lines 12–13) | `DBT_PROJECT_DIR` and `DBT_EXECUTABLE` are hardcoded Windows paths (`C:\Ethereum Project\...`) and are **never actually used** — the real `BashOperator` commands hardcode `/opt/airflow/dags/ETH_DBT` instead. Dead, misleading code. | Delete the two unused variables, or replace the hardcoded Linux path in the bash commands with a reference to them (`f'cd {DBT_PROJECT_DIR} && dbt run'`) for one source of truth. |
-| `ETH_DBT/` (repo root) vs `dags/ETH_DBT/` | These two folders are byte-for-byte duplicates. Only `dags/ETH_DBT/` is actually used, because Airflow mounts `./dags` into the container and the DAG's bash tasks `cd` into `/opt/airflow/dags/ETH_DBT`. The root-level `ETH_DBT/` does nothing and just creates confusion about which copy to edit. | Delete the root-level `ETH_DBT/` folder. Keep a single dbt project under `dags/ETH_DBT/`. |
-| `docker-compose.yaml` (volumes) | `/home/manan/.dbt:/home/airflow/.dbt` is hardcoded to one person's home directory — breaks for anyone else cloning the repo. | Use a relative path as shown in Setup Step 3. |
-| `requirements.txt` | This is a full `pip freeze` of the running container (417 packages, including Airflow itself and every provider). It's not meant to be `pip install -r requirements.txt`'d on a fresh machine — Docker already pulls the pinned `apache/airflow:3.3.0` image. | Keep it as a reference/lockfile for rebuilding a custom image if you ever add `build: .` to `docker-compose.yaml`. Don't run it locally unless you're intentionally recreating the container's Python env. |
-| Snowflake bronze layer | The `COPY INTO` statements assume `@ETH.ETH_SCHEMA.CONTRACTS_STAGE` and equivalent stages, plus the target tables, already exist in Snowflake. Nothing in this repo creates them. | Document (or add as a dbt seed/setup script) the `CREATE STAGE` / `CREATE TABLE` DDL so a new environment can be bootstrapped from scratch. |
-| `.gitignore` | Correctly excludes `profiles.yml`, `.env`, `*.pem`, `*.p8` — good, keep secrets out of git. | No action needed, just confirming it's already handled correctly. |
-
----
-
-## 7. Notes on the pipeline logic
+## 6. Notes on the pipeline logic
 
 - The bronze load pattern `CURRENT_DATE() - 3` subtracts **3 days**, not 3 months, before extracting `YYYY-MM` — in practice this only changes behavior near a month boundary. Worth double-checking this is the intended freshness window.
 - `catchup=False` means if the DAG is paused for a few days, those days are **not** backfilled automatically — you'd need to trigger manual runs for missed dates.
 - All dbt models are materialized as physical **tables** (`+materialized: table` in `dbt_project.yml`), not views/incremental — every `dbt run` does a full rebuild.
 
----
-
-## 8. Roadmap ideas
-
-- [ ] Add dbt tests (`schema.yml` with `not_null` / `unique` on `hash`, `transaction_hash`)
-- [ ] Parameterize the Snowflake stage names via dbt variables instead of hardcoding in the DAG's SQL
-- [ ] Add a `plugins/` and CI (GitHub Actions) step to run `dbt run --target ci` against a scratch schema on PRs
-- [ ] Replace the raw `COPY INTO` BashOperator/SQL block with a dedicated Snowflake ingestion tool (Snowpipe or an Airflow Snowflake provider hook) for better observability

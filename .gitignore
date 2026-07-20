@@ -1,0 +1,12 @@
+.env
+*.p8
+*.pem
+profiles.yml
+__pycache__/
+.venv/
+logs/
+dbt_packages/
+target/
+.DS_Store
+.idea/
+.vscode/

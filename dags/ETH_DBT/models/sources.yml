@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: ETH         
+    database: ETH              # <- Snowflake Database
+    schema: ETH_SCHEMA            # <- EXACT Snowflake Schema
+    tables:
+      - name: CONTRACTS
+      - name: TRANSACTIONS                                     # Source Table Names
+      - name: TOKEN_TRANSFERS          # Rest of your tables...

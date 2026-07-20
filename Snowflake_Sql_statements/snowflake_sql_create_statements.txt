@@ -1,0 +1,191 @@
+create database ETH;
+create schema ETH.ETH_SCHEMA;
+
+create or replace stage ETH.ETH_SCHEMA.STAGE_AWS_DATA 
+url='s3://aws-public-blockchain/v1.0/eth/'
+FILE_FORMAT=(TYPE='PARQUET');
+
+list @STAGE_AWS_DATA;
+
+-- *** Stage Creation ***
+
+
+
+-- - To view the AWS data source description we will connect to: https://registry.opendata.aws/aws-public-blockchain/
+
+
+-- - Command to create a stage connecting to this AWS source data:
+
+
+
+
+
+
+		
+
+-- - Commands to create the actual stages we will use during this course:
+
+
+CREATE OR REPLACE STAGE ETH.ETH_SCHEMA.CONTRACTS_STAGE
+url='s3://aws-public-blockchain/v1.0/eth/contracts'
+FILE_FORMAT= (TYPE= 'PARQUET');
+
+CREATE OR REPLACE STAGE ETH.ETH_SCHEMA.TOKEN_TRANSFERS
+url='s3://aws-public-blockchain/v1.0/eth/token_transfers'
+FILE_FORMAT = (TYPE = 'PARQUET');
+
+CREATE OR REPLACE STAGE ETH.ETH_SCHEMA.TRANSACTIONS
+url='s3://aws-public-blockchain/v1.0/eth/transactions'
+FILE_FORMAT= (TYPE= 'PARQUET');
+
+
+
+
+
+
+		CREATE OR REPLACE TABLE ETH.ETH_SCHEMA.CONTRACTS (
+		address string,
+		block_hash string,
+		block_number int,
+		block_timestamp TIMESTAMP,
+		bytecode string,
+		date date,
+		last_modified TIMESTAMP
+		);
+
+
+
+		CREATE OR REPLACE TABLE ETH.ETH_SCHEMA.TOKEN_TRANSFERS (
+		BLOCK_HASH STRING,
+		BLOCK_NUMBER  INT,
+		BLOCK_TIMESTAMP TIMESTAMP,
+		DATE DATE,
+		FROM_ADDRESS STRING,
+		TO_ADDRESS STRING,
+		LAST_MODIFIED TIMESTAMP,
+		LOG_INDEX INT,
+		TOKEN_ADDRESS STRING,
+		TRANSACTION_HASH STRING,
+		VALUE FLOAT
+		);
+
+
+		CREATE OR REPLACE TABLE ETH.ETH_SCHEMA.TRANSACTIONS (
+		BLOCK_HASH STRING,
+		BLOCK_NUMBER INT,
+		BLOCK_TIMESTAMP TIMESTAMP,
+		DATE DATE,
+		FROM_ADDRESS  STRING,
+		GAS INT,
+		GAS_PRICE STRING,
+		HASH STRING,
+		INPUT STRING,
+		LAST_MODIFIED TIMESTAMP,
+		MAX_FEE_PER_GAS STRING,
+		MAX_PRIORITY_FEE_PER_GAS  STRING,
+		NONCE STRING,
+		RECEIPT_CONTRACT_ADDRESS STRING,
+		RECEIPT_CUMULATIVE_GAS_USED INT,
+		RECEIPT_EFFECTIVE_GAS_PRICE STRING,
+		RECEIPT_GAS_USED INT,
+		RECEIPT_STATUS INT,
+		TO_ADDRESS STRING,
+		TRANSACTION_INDEX INT,
+		TRANSACTION_TYPE INT,
+		VALUE FLOAT
+		);
+    
+
+
+
+SET CURRENT_MONTH_PATTERN = (Select CONCAT('.*date=',TO_VARCHAR(CURRENT_DATE(),'YYYY-MM'),'.*'));
+
+SELECT $CURRENT_MONTH_PATTERN;
+
+
+
+
+        
+SET CURRENT_MONTH_PATTERN = (Select CONCAT('.*date=',TO_VARCHAR(CURRENT_DATE() - 3 ,'YYYY-MM'),'.*'));
+
+
+
+
+
+
+		COPY INTO ETH.ETH_SCHEMA.CONTRACTS
+		FROM(
+		select
+		t.$1:address,
+		t.$1:block_hash,
+		t.$1:block_number,
+		t.$1:block_timestamp,
+		t.$1:bytecode,
+		t.$1:date,
+		t.$1:last_modified
+		from @ETH.ETH_SCHEMA.CONTRACTS_STAGE t
+		)
+		PATTERN = $CURRENT_MONTH_PATTERN;
+
+
+
+
+		COPY INTO ETH.ETH_SCHEMA.TOKEN_TRANSFERS
+		FROM (
+		select
+		t.$1:block_hash,
+		t.$1:block_number,
+		t.$1:block_timestamp,
+		t.$1:date,
+		t.$1:from_address,
+		t.$1:to_address,
+		t.$1:last_modified,
+		t.$1:log_index,
+		t.$1:token_address,
+		t.$1:transaction_hash,
+		t.$1:value
+
+		from @ETH.ETH_SCHEMA.TOKEN_TRANSFERS t
+		)
+		PATTERN = $CURRENT_MONTH_PATTERN;
+
+
+
+
+
+		COPY INTO ETH.ETH_SCHEMA.TRANSACTIONS
+		FROM (
+		select
+		t.$1:block_hash,
+		t.$1:block_number,
+		t.$1:block_timestamp,
+		t.$1:date,
+		t.$1:from_address,
+		t.$1:gas,
+		t.$1:gas_price,
+		t.$1:hash,
+		t.$1:input,
+		t.$1:last_modified,
+		t.$1:max_fee_per_gas,
+		t.$1:max_priority_fee_per_gas,
+		t.$1:nonce,
+		t.$1:receipt_contract_address,
+		t.$1:receipt_cumulative_gas_used,
+		t.$1:receipt_effective_gas_price,
+		t.$1:receipt_gas_used,
+		t.$1:receipt_status,
+		t.$1:to_address,
+		t.$1:transaction_index,
+		t.$1:transaction_type,
+		t.$1:value
+
+		from @ETH.ETH_SCHEMA.TRANSACTIONS t
+		)
+		PATTERN = $CURRENT_MONTH_PATTERN;
+
+
+/* Creation of DBT DATABASE*/
+
+create database DBT_DB;
+
+ALTER USER <your dbt user you would configure> SET RSA_PUBLIC_KEY='<public key you will generate for key-based authentication';

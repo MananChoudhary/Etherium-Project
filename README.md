@@ -146,5 +146,3 @@ Add `DBT_SNOWFLAKE_PASSWORD=...` to `.env`.
 - `ETH_DBT/models/sources.yml` — dbt source declarations for ETH.ETH_SCHEMA
 - `docker-compose.yaml` — local Airflow stack; edit volumes & _PIP_ADDITIONAL_REQUIREMENTS if needed
 
-## Next steps & offer
-I created an editable Excalidraw file under `/docs/architecture.excalidraw.json` and an SVG preview `/docs/architecture.svg`. If you want, I can also produce a PNG and open a PR with additional fixes. Let me know if you want me to also reconcile dbt materialization settings or update dbt models.

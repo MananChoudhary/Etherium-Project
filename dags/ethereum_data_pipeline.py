@@ -7,11 +7,9 @@ from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator a
 # ==============================================================================
 # CONFIGURATION & EDGE-CASE HARDENING
 # ==============================================================================
-# 1. Double-check that your physical folder is spelled "Ethereum Project"
-DBT_PROJECT_DIR = r"C:\Ethereum Project\ETH_DBT"
-
-# 2. Pointing directly to the dbt executable avoids Windows shell activation bugs
-DBT_EXECUTABLE = r"C:\Ethereum Project\.venv\Scripts\dbt.exe"
+# Use environment variables so the DAG works both locally on Windows and inside containers
+DBT_PROJECT_DIR = os.environ.get("DBT_PROJECT_DIR", "/opt/airflow/dags/ETH_DBT")
+DBT_EXECUTABLE = os.environ.get("DBT_EXECUTABLE", "dbt")
 
 default_args = {
     'owner': 'data_engineering',
@@ -47,13 +45,13 @@ with DAG(
 
             COPY INTO ETH.ETH_SCHEMA.TOKEN_TRANSFERS
             FROM (
-                SELECT t.$1:block_hash, t.$1:block_number, t.$1:block_timestamp, t.$1:date, t.$1:from_address, t.$1:to_address, t.$1:last_modified, t.$1:log_index, t.$1:token_address, t.$1:transaction_hash, t.$1:value
+                SELECT t.$1:block_hash, t.$1:block_number, t.$1:block_timestamp, t.$1:date, t.$1:from_address, t.$1:to_address, t.$1:last_modified, t.$1:log_index, t.$1:token_address, t.$1:transac
                 FROM @ETH.ETH_SCHEMA.TOKEN_TRANSFERS t
             ) PATTERN = $CURRENT_MONTH_PATTERN;
 
             COPY INTO ETH.ETH_SCHEMA.TRANSACTIONS
             FROM (
-                SELECT t.$1:block_hash, t.$1:block_number, t.$1:block_timestamp, t.$1:date, t.$1:from_address, t.$1:gas, t.$1:gas_price, t.$1:hash, t.$1:input, t.$1:last_modified, t.$1:max_fee_per_gas, t.$1:max_priority_fee_per_gas, t.$1:nonce, t.$1:receipt_contract_address, t.$1:receipt_cumulative_gas_used, t.$1:receipt_effective_gas_price, t.$1:receipt_gas_used, t.$1:receipt_status, t.$1:to_address, t.$1:transaction_index, t.$1:transaction_type, t.$1:value
+                SELECT t.$1:block_hash, t.$1:block_number, t.$1:block_timestamp, t.$1:date, t.$1:from_address, t.$1:gas, t.$1:gas_price, t.$1:hash, t.$1:input, t.$1:last_modified, t.$1:max_fee_per
                 FROM @ETH.ETH_SCHEMA.TRANSACTIONS t
             ) PATTERN = $CURRENT_MONTH_PATTERN;
         ''',
@@ -63,10 +61,9 @@ with DAG(
     # STAGE 2: DATA FRESHNESS TRIPWIRE
     # ==========================================
     # Validates that your raw tables actually received new data today before transforming
-    # Uses 'cd /d' to guarantee Windows changes disk drive partitions if necessary
     dbt_source_freshness = BashOperator(
         task_id='dbt_source_freshness',
-        bash_command=f'cd /opt/airflow/dags/ETH_DBT && dbt source freshness',
+        bash_command=f'cd {DBT_PROJECT_DIR} && {DBT_EXECUTABLE} source freshness',
     )
 
     # ==========================================
@@ -75,7 +72,7 @@ with DAG(
     # Tells dbt to read your local models/ folders and recreate clean tables in Snowflake
     run_dbt_pipeline = BashOperator(
         task_id='run_dbt_pipeline',
-        bash_command=f'cd /opt/airflow/dags/ETH_DBT && dbt run',
+        bash_command=f'cd {DBT_PROJECT_DIR} && {DBT_EXECUTABLE} run',
     )
 
     # ==========================================
@@ -84,7 +81,7 @@ with DAG(
     # Runs the testing suite (e.g., checking for unique IDs or null values)
     test_dbt_pipeline = BashOperator(
         task_id='test_dbt_pipeline',
-        bash_command='cd /opt/airflow/dags/ETH_DBT && dbt test',
+        bash_command=f'cd {DBT_PROJECT_DIR} && {DBT_EXECUTABLE} test',
     )
 
     # ==========================================

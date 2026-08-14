@@ -1,6 +1,7 @@
 # Etherium-Project
 
-One-line summary
+One-line summary:
+
 This repository is an Airflow-orchestrated medallion pipeline that ingests Ethereum raw files into Snowflake (Bronze), runs dbt to transform data into Silver and Gold models, and validates quality with dbt tests. It's aimed at data engineers who want a reproducible local/dev setup (Docker Compose) that mirrors a Snowflake + dbt + Airflow workflow.
 
 Table of contents
@@ -23,14 +24,7 @@ An end-to-end local development pipeline: Airflow (CeleryExecutor) triggers a Sn
 - Runtime / Framework: Apache Airflow (CeleryExecutor) via Docker Compose; dbt-core / dbt-snowflake; Snowflake as the data warehouse
 - Notable libraries: apache-airflow (3.3.0), dbt-core (1.12.0) + dbt-snowflake, snowflake-connector-python
 
-## Architecture (visual)
-Below is a concise diagram of the data + orchestration flow. An editable Excalidraw file is included in /docs (open at excalidraw.com → File → Import → select the .excalidraw.json file).
-
-![Architecture diagram](./docs/architecture.svg)
-
-Open editable version in Excalidraw:
-- File: ./docs/architecture.excalidraw.json
-- To edit: go to https://excalidraw.com/ → File → Import → choose the JSON file, or drag-and-drop the JSON onto the canvas.
+## Architecture
 
 ## How it’s organized (top-level)
 ```
